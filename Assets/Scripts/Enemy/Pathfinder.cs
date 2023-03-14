@@ -10,6 +10,7 @@ using System;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Rendering.Universal;
 using Utils;
 
 public class Pathfinder : MonoBehaviour
@@ -63,6 +64,17 @@ public class Pathfinder : MonoBehaviour
     public float detectionRange;
 
     private bool chasing = false;
+
+    private GameObject light;
+    private Light2D lightComponent;
+    private bool hasLight = false;
+
+    private Quaternion targetAngle;
+
+    private bool looking = false;
+    private byte lookstep = 0;
+
+    private float fov;
     
     private void Start()
     {
@@ -74,38 +86,80 @@ public class Pathfinder : MonoBehaviour
         //print(graph[graphDimensions.x/2,graphDimensions.y/2]);
         pathfindingWaypoints = a_star_search(actualToGrid(transform.position),
            actualToGrid(waypoints[currentPathWaypoint]));
+
+        lightComponent = GetComponentInChildren<Light2D>();
+        if (lightComponent != null)
+        {
+            hasLight = true;
+            light = lightComponent.gameObject;
+        }
+
+        fov = lightComponent.pointLightInnerAngle / 2;
+
         //print(pathfindingWaypoints.Count);
         //print(gridToActual(graphDimensions));
         //print(actualToGrid(transform.position));
         //print(gridToActual(actualToGrid(transform.position)));
+        detectionRange = lightComponent.pointLightOuterRadius * 0.9F;
+        chaseRange = detectionRange;
     }
 
+    private void Update()
+    {
+        light.transform.rotation = Quaternion.RotateTowards(light.transform.rotation, targetAngle, looking ? 1.125F : 5F);
+
+        if (looking && Quaternion.Angle(targetAngle, light.transform.rotation) < 2)
+        {
+            if (lookstep == 0)
+            {
+                targetAngle = Quaternion.Inverse(targetAngle);
+                lookstep = 1;
+            }
+            else
+            {
+                looking = false;
+                lookstep = 0;
+            }
+        }
+    }
 
     private void FixedUpdate()
     {
         if (target != null)
         {
-            RaycastHit2D ray = Physics2D.Raycast(transform.position, target.transform.position, detectionRange, target.layer);
-
-            if (ray.collider == null)
+            Vector2 toTarget = (target.transform.position - transform.position);
+            //Quaternion.
+            Quaternion angle = Quaternion.Euler(0,0,Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg - 90);
+           // print(fov + " angle: " + angle + " rot: " + light.transform.rotation.eulerAngles.z);
+            if (Quaternion.Angle(angle,light.transform.rotation) < fov)
             {
-                chasing = true;
-            }
+                RaycastHit2D ray = Physics2D.Raycast(transform.position, target.transform.position, detectionRange, target.layer);
 
-            if (chasing)
-            {
-                if ((transform.position - target.transform.position).magnitude > chaseRange)
+                if (ray.collider.gameObject == target)
                 {
-                    //the target is out of range, stop chasing and resume previous path
+                    chasing = true;
+                }
+
+                if (chasing)
+                {
+                    if ((transform.position - target.transform.position).magnitude > chaseRange)
+                    {
+                        //the target is out of range, stop chasing and resume previous path
                 
-                    chasing = false;
-                    pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(waypoints[currentPathWaypoint]));
+                        chasing = false;
+                        pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(waypoints[currentPathWaypoint]));
+                    }
+                    else
+                    {
+                        pathfindingWaypoints =
+                            a_star_search(actualToGrid(transform.position), actualToGrid(target.transform.position));
+                    }
                 }
-                else
-                {
-                    pathfindingWaypoints =
-                        a_star_search(actualToGrid(transform.position), actualToGrid(target.transform.position));
-                }
+                Debug.DrawLine(transform.position, target.transform.position, Color.green);
+            }
+            else
+            {
+                Debug.DrawLine(transform.position, target.transform.position, Color.red);
             }
         }
         pace();
@@ -330,36 +384,51 @@ public class Pathfinder : MonoBehaviour
 
     void pace()
     {
-        Vector3 direction;
-        if (!chasing)
+        if (!looking)
         {
-            direction = pathfindingWaypoints[currentWaypoint] - (Vector2) transform.position;
-        }
-        else
-        {
-            direction = target.transform.position - transform.position;
-        }
-        Vector2 currentPos;
-        currentPos.x = transform.position.x;
-        currentPos.y = transform.position.y;
-        //check if close to target, if so go to next one if possible
-        if (direction.magnitude <= 0.5)
-        {
-            ++currentWaypoint;
-            if (currentWaypoint >= pathfindingWaypoints.Count - 1 && !chasing)
+            Vector3 direction;
+            if (!chasing)
             {
-                currentPathWaypoint++;
-                if (currentPathWaypoint >= waypoints.Length)
-                {
-                    currentPathWaypoint = 0;
-                }
-                pathfindingWaypoints = a_star_search(actualToGrid(currentPos), actualToGrid(waypoints[currentPathWaypoint]));
-                currentWaypoint = 0;
+                direction = pathfindingWaypoints[currentWaypoint] - (Vector2) transform.position;
             }
-            currentTarget = pathfindingWaypoints[currentWaypoint];
-            //a_star_search(actualToGrid(currentPos), actualToGrid(waypoints[currentWaypoint]));
-        }
+            else
+            {
+                direction = target.transform.position - transform.position;
+            }
+
+            if (hasLight)
+            {
+                targetAngle = Quaternion.Euler(0,0,Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg);
+            }
+
+            Vector2 currentPos;
+            currentPos.x = transform.position.x;
+            currentPos.y = transform.position.y;
+            //check if close to target, if so go to next one if possible
+            if (direction.magnitude <= 0.5)
+            {
+                ++currentWaypoint;
+                if (currentWaypoint >= pathfindingWaypoints.Count - 1 && !chasing)
+                {
+                    currentPathWaypoint++;
+                    if (currentPathWaypoint >= waypoints.Length)
+                    {
+                        currentPathWaypoint = 0;
+                    }
+
+                    looking = true;
+                    targetAngle = Quaternion.Euler(0, 0, Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg + 90);
+                    myRB2D.velocity = Vector2.zero;
+                    pathfindingWaypoints = a_star_search(actualToGrid(currentPos), actualToGrid(waypoints[currentPathWaypoint]));
+                    currentWaypoint = 0;
+                    currentTarget = pathfindingWaypoints[currentWaypoint];
+                    return;
+                }
+                currentTarget = pathfindingWaypoints[currentWaypoint];
+                //a_star_search(actualToGrid(currentPos), actualToGrid(waypoints[currentWaypoint]));
+            }
         
-        myRB2D.velocity = direction.normalized * speed;
+            myRB2D.velocity = direction.normalized * speed;
+        }
     }
 }
