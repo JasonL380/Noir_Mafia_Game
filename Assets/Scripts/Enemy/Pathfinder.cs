@@ -10,7 +10,6 @@ using System;
 using System.Collections.Generic;
 using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.Rendering.Universal;
 using Utils;
 
 public class Pathfinder : MonoBehaviour
@@ -66,7 +65,7 @@ public class Pathfinder : MonoBehaviour
     private bool chasing = false;
 
     private GameObject light;
-    private Light2D lightComponent;
+    private Light lightComponent;
     private bool hasLight = false;
 
     private Quaternion targetAngle;
@@ -87,20 +86,20 @@ public class Pathfinder : MonoBehaviour
         pathfindingWaypoints = a_star_search(actualToGrid(transform.position),
            actualToGrid(waypoints[currentPathWaypoint]));
 
-        lightComponent = GetComponentInChildren<Light2D>();
+        lightComponent = GetComponentInChildren<Light>();
         if (lightComponent != null)
         {
             hasLight = true;
             light = lightComponent.gameObject;
         }
 
-        fov = lightComponent.pointLightInnerAngle / 2;
+        fov = lightComponent.innerSpotAngle / 2;
 
         //print(pathfindingWaypoints.Count);
         //print(gridToActual(graphDimensions));
         //print(actualToGrid(transform.position));
         //print(gridToActual(actualToGrid(transform.position)));
-        detectionRange = lightComponent.pointLightOuterRadius * 0.9F;
+        detectionRange = lightComponent.range * 0.9F;
         chaseRange = detectionRange;
     }
 
