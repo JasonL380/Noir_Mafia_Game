@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using Unity.VisualScripting;
+using UnityEditor.Search;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using Utils;
@@ -72,7 +73,7 @@ public class Pathfinder : MonoBehaviour
     public Quaternion targetAngle;
 
     public bool looking = false;
-    private byte lookstep = 0;
+    public byte lookstep = 0;
 
     private float fov;
     
@@ -107,16 +108,19 @@ public class Pathfinder : MonoBehaviour
     private void Update()
     {
         light.transform.rotation = Quaternion.RotateTowards(light.transform.rotation, targetAngle, looking ? 1.125F : 5F);
-
+    
+        //if(displayDebug) Debug.DrawLine(transform.position, );
+        
         if (looking && Quaternion.Angle(targetAngle, light.transform.rotation) < 2)
         {
             if (lookstep == 0)
             {
-                targetAngle = Quaternion.Inverse(targetAngle);
+                targetAngle = Quaternion.Euler(0, 0 , targetAngle.eulerAngles.z + 180);
                 lookstep = 1;
             }
             else
             {
+                print("done looking " + lookstep);
                 looking = false;
                 lookstep = 0;
             }
@@ -140,6 +144,7 @@ public class Pathfinder : MonoBehaviour
                     chasing = true;
                     if(displayDebug) Debug.DrawLine(transform.position, target.transform.position, Color.green);
                     targetAngle = Quaternion.Euler(0,0,(Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg) - 90);
+                    print("start chasing, stop looking");
                     looking = false;
 
                 }
@@ -286,23 +291,38 @@ public class Pathfinder : MonoBehaviour
             }
 
             //print("Visiting " + current);
-            int currentPoint = graph[current.x, current.y];
+            int currentPoint;
+            try
+            {
+                currentPoint = graph[current.x, current.y];
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+                throw;
+            }
+            
             for (int i = 1; i <= 4; ++i)
             {
                 if ((currentPoint & (1 << i)) != 0)
                 {
                     Vector2Int next = getNeighbor(current, i);
-                    float new_cost = cost_so_far[current] + 1;
-                    if (!cost_so_far.ContainsKey(next) || new_cost < cost_so_far[next])
+                    if (next.x >= 0 && next.x <= graphDimensions.x - 1 && next.y >= 0 &&
+                        next.y <= graphDimensions.y - 1)
                     {
-                        cost_so_far[next] = new_cost;
-
-                        queue.Enqueue(next, new_cost + heuristic(next, goal));
-                        cameFrom[next] = current;
-                        //print(((gridSize * next) - gridStart).ToString() + ", " + (gridSize * current) + gridStart);
-                        if (displayDebug)
+                        float new_cost = cost_so_far[current] + 1;
+                        if (!cost_so_far.ContainsKey(next) || new_cost < cost_so_far[next])
                         {
-                            Debug.DrawLine((gridSize * next) + gridStart, (gridSize * current) + gridStart, Color.magenta, 30);
+                            cost_so_far[next] = new_cost;
+
+                            queue.Enqueue(next, new_cost + heuristic(next, goal));
+                            cameFrom[next] = current;
+                            //print(((gridSize * next) - gridStart).ToString() + ", " + (gridSize * current) + gridStart);
+                            if (displayDebug)
+                            {
+                                Debug.DrawLine((gridSize * next) + gridStart, (gridSize * current) + gridStart,
+                                    Color.magenta, 30);
+                            }
                         }
                     }
                 }
@@ -426,7 +446,7 @@ public class Pathfinder : MonoBehaviour
 
     void pace()
     {
-        if (waypoints.Length == 0)
+       /* if (waypoints.Length == 0)
         {
             if(chasing) {
                 pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(target.transform.position));
@@ -435,7 +455,7 @@ public class Pathfinder : MonoBehaviour
             {
                 pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(waypoints[currentPathWaypoint]));
             }
-        }
+        }*/
         
         if (!looking)
         {
@@ -445,7 +465,7 @@ public class Pathfinder : MonoBehaviour
                 direction = pathfindingWaypoints[currentWaypoint] - (Vector2) transform.position;
                 if (hasLight)
                 {
-                    targetAngle = Quaternion.Euler(0,0,Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg);
+                    targetAngle = Quaternion.Euler(0,0,(Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg) - 90);
                 }
             }
             else
@@ -479,7 +499,7 @@ public class Pathfinder : MonoBehaviour
                     if (!chasing)
                     {
                         looking = true;
-                        targetAngle = Quaternion.Euler(0, 0, Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg + 90);
+                        targetAngle = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 180);
                     }
                     myRB2D.velocity = Vector2.zero;
                     pathfindingWaypoints = a_star_search(actualToGrid(currentPos), actualToGrid(waypoints[currentPathWaypoint]));
