@@ -63,15 +63,15 @@ public class Pathfinder : MonoBehaviour
     [Tooltip("The radius that the player must be within in order to be detected")]
     public float detectionRange;
 
-    private bool chasing = false;
+    public bool chasing = false;
 
     private GameObject light;
     private Light2D lightComponent;
     private bool hasLight = false;
 
-    private Quaternion targetAngle;
+    public Quaternion targetAngle;
 
-    private bool looking = false;
+    public bool looking = false;
     private byte lookstep = 0;
 
     private float fov;
@@ -131,13 +131,23 @@ public class Pathfinder : MonoBehaviour
             //Quaternion.
             Quaternion angle = Quaternion.Euler(0,0,Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg - 90);
            // print(fov + " angle: " + angle + " rot: " + light.transform.rotation.eulerAngles.z);
-            if (Quaternion.Angle(angle,light.transform.rotation) < fov)
+            if (Quaternion.Angle(angle,light.transform.rotation) < fov * (chasing ? 2 : 1) && toTarget.sqrMagnitude < detectionRange*detectionRange)
             {
-                RaycastHit2D ray = Physics2D.Raycast(transform.position, target.transform.position, detectionRange, target.layer);
+                RaycastHit2D ray = Physics2D.Linecast(transform.position, target.transform.position, wallLayers);
 
-                if (ray.collider.gameObject == target)
+                if (ray.collider == null)
                 {
                     chasing = true;
+                    if(displayDebug) Debug.DrawLine(transform.position, target.transform.position, Color.green);
+                    targetAngle = Quaternion.Euler(0,0,(Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg) - 90);
+                    looking = false;
+
+                }
+                else
+                {
+                    chasing = false;
+                    pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(waypoints[currentPathWaypoint]));
+                    if(displayDebug) Debug.DrawLine(transform.position, target.transform.position, Color.yellow);
                 }
 
                 if (chasing)
@@ -155,11 +165,16 @@ public class Pathfinder : MonoBehaviour
                             a_star_search(actualToGrid(transform.position), actualToGrid(target.transform.position));
                     }
                 }
-                Debug.DrawLine(transform.position, target.transform.position, Color.green);
+                
             }
             else
             {
-                Debug.DrawLine(transform.position, target.transform.position, Color.red);
+                if (chasing)
+                {
+                    chasing = false;
+                    pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(waypoints[currentPathWaypoint]));
+                }
+                if(displayDebug) Debug.DrawLine(transform.position, target.transform.position, Color.red);
             }
         }
         pace();
@@ -363,7 +378,29 @@ public class Pathfinder : MonoBehaviour
         Vector2 grid = (actual - (boxCenter - (boxSize / 2))) / gridSize;
         grid.x = Math.Min(Math.Max(grid.x, 0), graphDimensions.x - 1);
         grid.y = Math.Min(Math.Max(grid.y, 0), graphDimensions.y - 1);
-        return new Vector2Int((int) grid.x, (int) grid.y);
+
+        
+        Vector2Int bestPoint = new Vector2Int((int) grid.x, (int) grid.y);
+        
+        /*if (graph[((int) grid.x), ((int) grid.y)] == 0)
+        {
+            int bestDiff = 1024;
+            for (int x = (int) nodeDensity * -2; x < nodeDensity * 2; ++x)
+            {
+                for (int y = (int) nodeDensity * -2; y < nodeDensity * 2; ++y)
+                {
+                    int cx = (int) Math.Min(Math.Max(grid.x + x, 0), graphDimensions.x - 1);
+                    int cy = (int) Math.Min(Math.Max(grid.y + y, 0), graphDimensions.y - 1);
+                    if (graph[cx, cy] != 0 && Mathf.Abs(x) + Mathf.Abs(y) < bestDiff)
+                    {
+                        bestDiff = Mathf.Abs(x) + Mathf.Abs(y);
+                        bestPoint = new Vector2Int(cx, cy);
+                    }
+                }
+            }
+        }*/
+
+        return bestPoint;
     }
 
     bool hasNodes(byte[,] list)
@@ -382,24 +419,46 @@ public class Pathfinder : MonoBehaviour
         return false;
     }
 
+    void startChasing()
+    {
+        
+    }
+
     void pace()
     {
+        if (waypoints.Length == 0)
+        {
+            if(chasing) {
+                pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(target.transform.position));
+            }
+            else
+            {
+                pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(waypoints[currentPathWaypoint]));
+            }
+        }
+        
         if (!looking)
         {
             Vector3 direction;
             if (!chasing)
             {
                 direction = pathfindingWaypoints[currentWaypoint] - (Vector2) transform.position;
+                if (hasLight)
+                {
+                    targetAngle = Quaternion.Euler(0,0,Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg);
+                }
             }
             else
             {
                 direction = target.transform.position - transform.position;
+                if (hasLight)
+                {
+                    Vector2 toTarget = target.transform.position - transform.position;
+                    targetAngle = Quaternion.Euler(0,0,(Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg) - 90);
+                }
             }
 
-            if (hasLight)
-            {
-                targetAngle = Quaternion.Euler(0,0,Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg);
-            }
+            
 
             Vector2 currentPos;
             currentPos.x = transform.position.x;
@@ -416,8 +475,12 @@ public class Pathfinder : MonoBehaviour
                         currentPathWaypoint = 0;
                     }
 
-                    looking = true;
-                    targetAngle = Quaternion.Euler(0, 0, Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg + 90);
+                    
+                    if (!chasing)
+                    {
+                        looking = true;
+                        targetAngle = Quaternion.Euler(0, 0, Mathf.Atan2(direction.x, direction.y) * Mathf.Rad2Deg + 90);
+                    }
                     myRB2D.velocity = Vector2.zero;
                     pathfindingWaypoints = a_star_search(actualToGrid(currentPos), actualToGrid(waypoints[currentPathWaypoint]));
                     currentWaypoint = 0;
