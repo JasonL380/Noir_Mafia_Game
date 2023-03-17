@@ -13,13 +13,25 @@ using UnityEditor.Search;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using Utils;
+using Random = UnityEngine.Random;
 
 public class Pathfinder : MonoBehaviour
 {
+
+    //4 states that this pathfinder can be in
+    public enum PathfinderState
+    {
+        Pacing, //moving along the path determined by waypoints
+        Looking, //looking around
+        Chasing, //chasing the target
+        Searching //searching for the target
+    }
+
     public float speed; //the speed that this should move at, do not set this too high or it won't work
 
     [Tooltip("list of points for the AI follow")]
     public Vector2[] waypoints;
+
     private List<Vector2> pathfindingWaypoints = new List<Vector2>();
 
     [Tooltip("select all layers that contain objects which should be treated as walls")]
@@ -29,9 +41,9 @@ public class Pathfinder : MonoBehaviour
     private int currentWaypoint = 0;
     private int currentPathWaypoint = 0;
     private Rigidbody2D myRB2D;
-    private CircleCollider2D myCirc;
     public bool displayDebug = true;
-    private Vector2 currentTarget;
+    public Vector2 currentTarget;
+
     [Tooltip("The center of the pathfinding area")]
     public Vector2 boxCenter;
 
@@ -60,11 +72,9 @@ public class Pathfinder : MonoBehaviour
 
     [Tooltip("The radius that the player must remain within in order to continue being chased")]
     public float chaseRange;
-    
+
     [Tooltip("The radius that the player must be within in order to be detected")]
     public float detectionRange;
-
-    public bool chasing = false;
 
     private GameObject light;
     private Light2D lightComponent;
@@ -72,21 +82,22 @@ public class Pathfinder : MonoBehaviour
 
     public Quaternion targetAngle;
 
-    public bool looking = false;
+    public PathfinderState State;
     public byte lookstep = 0;
 
     private float fov;
+
+    public Vector2 ColliderSize;
     
     private void Start()
     {
         //print("initializing pathfinder");
         myRB2D = GetComponent<Rigidbody2D>();
-        myCirc = GetComponent<CircleCollider2D>();
         //target = waypoints[0];
         generateGraph();
         //print(graph[graphDimensions.x/2,graphDimensions.y/2]);
         pathfindingWaypoints = a_star_search(actualToGrid(transform.position),
-           actualToGrid(waypoints[currentPathWaypoint]));
+            actualToGrid(waypoints[currentPathWaypoint]));
 
         lightComponent = GetComponentInChildren<Light2D>();
         if (lightComponent != null)
@@ -107,21 +118,22 @@ public class Pathfinder : MonoBehaviour
 
     private void Update()
     {
-        light.transform.rotation = Quaternion.RotateTowards(light.transform.rotation, targetAngle, looking ? 1.125F : 5F);
-    
+        light.transform.rotation = Quaternion.RotateTowards(light.transform.rotation, targetAngle,
+            State == PathfinderState.Looking ? 1.125F : 5F);
+
         //if(displayDebug) Debug.DrawLine(transform.position, );
-        
-        if (looking && Quaternion.Angle(targetAngle, light.transform.rotation) < 2)
+
+        if (State == PathfinderState.Looking && Quaternion.Angle(targetAngle, light.transform.rotation) < 2)
         {
             if (lookstep == 0)
             {
-                targetAngle = Quaternion.Euler(0, 0 , targetAngle.eulerAngles.z + 180);
+                targetAngle = Quaternion.Euler(0, 0, targetAngle.eulerAngles.z + 180);
                 lookstep = 1;
             }
             else
             {
                 print("done looking " + lookstep);
-                looking = false;
+                State = PathfinderState.Pacing;
                 lookstep = 0;
             }
         }
@@ -129,63 +141,67 @@ public class Pathfinder : MonoBehaviour
 
     private void FixedUpdate()
     {
+        SearchForTarget();
+        pace();
+    }
+
+
+    private void SearchForTarget()
+    {
         if (target != null)
         {
             Vector2 toTarget = (target.transform.position - transform.position);
             //Quaternion.
             Quaternion angle = Quaternion.Euler(0,0,Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg - 90);
            // print(fov + " angle: " + angle + " rot: " + light.transform.rotation.eulerAngles.z);
-            if (Quaternion.Angle(angle,light.transform.rotation) < fov * (chasing ? 2 : 1) && toTarget.sqrMagnitude < detectionRange*detectionRange)
+            if (Quaternion.Angle(angle,light.transform.rotation) < fov * (State == PathfinderState.Chasing ? 2 : 1) && toTarget.sqrMagnitude < detectionRange*detectionRange)
             {
                 RaycastHit2D ray = Physics2D.Linecast(transform.position, target.transform.position, wallLayers);
 
                 if (ray.collider == null)
                 {
-                    chasing = true;
+                    State = PathfinderState.Chasing;
                     if(displayDebug) Debug.DrawLine(transform.position, target.transform.position, Color.green);
                     targetAngle = Quaternion.Euler(0,0,(Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg) - 90);
                     print("start chasing, stop looking");
-                    looking = false;
 
                 }
                 else
                 {
-                    chasing = false;
-                    pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(waypoints[currentPathWaypoint]));
-                    if(displayDebug) Debug.DrawLine(transform.position, target.transform.position, Color.yellow);
-                }
-
-                if (chasing)
-                {
-                    if ((transform.position - target.transform.position).magnitude > chaseRange)
+                    if (State == PathfinderState.Chasing)
                     {
-                        //the target is out of range, stop chasing and resume previous path
-                
-                        chasing = false;
-                        pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(waypoints[currentPathWaypoint]));
-                    }
-                    else
-                    {
+                        State = PathfinderState.Searching;
                         pathfindingWaypoints =
                             a_star_search(actualToGrid(transform.position), actualToGrid(target.transform.position));
+                        print("lost line of sight with the target, going to last known position to look for it");
                     }
+                    else if (State != PathfinderState.Searching)
+                    {
+                        State = PathfinderState.Pacing;
+                        pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(waypoints[currentPathWaypoint]));
+                        if(displayDebug) Debug.DrawLine(transform.position, target.transform.position, Color.yellow);
+                    }
+                }
+
+                if (State == PathfinderState.Chasing)
+                {
+                    pathfindingWaypoints =
+                        a_star_search(actualToGrid(transform.position), actualToGrid(target.transform.position));
                 }
                 
             }
             else
             {
-                if (chasing)
+                if (State == PathfinderState.Chasing)
                 {
-                    chasing = false;
+                    State = PathfinderState.Pacing;
                     pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(waypoints[currentPathWaypoint]));
                 }
                 if(displayDebug) Debug.DrawLine(transform.position, target.transform.position, Color.red);
             }
         }
-        pace();
     }
 
-    
     void generateGraph()
     {
         //calculate the grid size and dimensions from nodeDensity
@@ -210,8 +226,8 @@ public class Pathfinder : MonoBehaviour
                 Vector2 position = (gridSize * new Vector2(x, y)) + gridStart;
 
                 //create a circle overlap with the same size as this object's collider to detect any nearby walls, aka determine if the object is able to exist at this position
-                Collider2D collision = Physics2D.OverlapCircle(position, myCirc.radius, wallLayers);
-
+                //Collider2D collision = Physics2D.OverlapCircle(position, myCirc.radius, wallLayers);
+                Collider2D collision = Physics2D.OverlapBox(position, ColliderSize, 0, wallLayers);
                 //if the circle didn't collide with anything add a node here
                 if (collision == null)
                 {
@@ -231,7 +247,7 @@ public class Pathfinder : MonoBehaviour
         }
 
         //loop through the graph to fill in data about neighbors
-        for (int x = 0; x < sizeX; ++x)
+       /* for (int x = 0; x < sizeX; ++x)
         {
             for (int y = 0; y < sizeY; ++y)
             {
@@ -262,8 +278,8 @@ public class Pathfinder : MonoBehaviour
                         graph[x, y] = Convert.ToByte(1 << 1 | graph[x, y]);
                     }
                 }
-            }
-        }
+            }*/
+        //}
     }
 
     
@@ -279,7 +295,7 @@ public class Pathfinder : MonoBehaviour
         Dictionary<Vector2Int, float> cost_so_far = new Dictionary<Vector2Int, float>();
         cameFrom[start] = null;
         cost_so_far[start] = 0;
-
+        float sqrt2 = Mathf.Sqrt(2);
         //print("running search " + queue.Count);
         while (queue.Count != 0)
         {
@@ -301,28 +317,36 @@ public class Pathfinder : MonoBehaviour
                 Console.WriteLine(e);
                 throw;
             }
-            
-            for (int i = 1; i <= 4; ++i)
-            {
-                if ((currentPoint & (1 << i)) != 0)
-                {
-                    Vector2Int next = getNeighbor(current, i);
-                    if (next.x >= 0 && next.x <= graphDimensions.x - 1 && next.y >= 0 &&
-                        next.y <= graphDimensions.y - 1)
-                    {
-                        float new_cost = cost_so_far[current] + 1;
-                        if (!cost_so_far.ContainsKey(next) || new_cost < cost_so_far[next])
-                        {
-                            cost_so_far[next] = new_cost;
 
-                            queue.Enqueue(next, new_cost + heuristic(next, goal));
-                            cameFrom[next] = current;
-                            //print(((gridSize * next) - gridStart).ToString() + ", " + (gridSize * current) + gridStart);
-                            if (displayDebug)
-                            {
-                                Debug.DrawLine((gridSize * next) + gridStart, (gridSize * current) + gridStart,
-                                    Color.magenta, 30);
-                            }
+            
+            
+            for (int i = 1; i <= 8; ++i)
+            {
+                Vector2Int next = getNeighbor(current, i);
+                if (next.x >= 0 && next.x <= graphDimensions.x - 1 && next.y >= 0 &&
+                    next.y <= graphDimensions.y - 1 && graph[next.x, next.y] != 0)
+                {
+                    float new_cost;
+                    if (i > 4)
+                    {
+                        new_cost = cost_so_far[current] + sqrt2;
+                    }
+                    else
+                    {
+                        new_cost = cost_so_far[current] + 1;
+                    }
+                    
+                    if (!cost_so_far.ContainsKey(next) || new_cost < cost_so_far[next])
+                    {
+                        cost_so_far[next] = new_cost;
+
+                        queue.Enqueue(next, new_cost + heuristic(next, goal));
+                        cameFrom[next] = current;
+                        //print(((gridSize * next) - gridStart).ToString() + ", " + (gridSize * current) + gridStart);
+                        if (displayDebug)
+                        {
+                            //Debug.DrawLine((gridSize * next) + gridStart, (gridSize * current) + gridStart,
+                                //Color.magenta, 30);
                         }
                     }
                 }
@@ -362,7 +386,26 @@ public class Pathfinder : MonoBehaviour
         }
 
         path.Reverse(0, path.Count);
-//	    print(path.Count);
+        /*List<Vector2> simplifiedPath = new List<Vector2>();
+        simplifiedPath.Add(path[0]);
+
+        Vector2 currentStart = path[0];
+        //try to simplify the path
+        for (int i = 1; i < path.Count; ++i)
+        {
+            RaycastHit2D hit = Physics2D.CircleCast(currentStart, ColliderSize.x/2, (path[i] - currentStart).normalized,
+                (path[i] - currentStart).magnitude, wallLayers);
+
+            if (hit.collider != null)
+            {
+                Debug.DrawLine(simplifiedPath[simplifiedPath.Count - 1], path[i-1], Color.magenta, 30);
+                simplifiedPath.Add(path[i-1]);
+                currentStart = path[i - 1];
+            }
+        }
+        Debug.DrawLine(simplifiedPath[simplifiedPath.Count - 1], path[path.Count-1], Color.magenta, 30);
+        simplifiedPath.Add(path[path.Count - 1]);
+        print(path.Count + " " + simplifiedPath.Count);*/
         currentWaypoint = 0;
         return path;
     }
@@ -383,6 +426,18 @@ public class Pathfinder : MonoBehaviour
             //right
             case 4:
                 return new Vector2Int(current.x + 1, current.y);
+            //up left
+            case 5:
+                return new Vector2Int(current.x - 1, current.y + 1);
+            //up right
+            case 6:
+                return new Vector2Int(current.x + 1, current.y + 1);
+            //down left
+            case 7:
+                return new Vector2Int(current.x - 1, current.y - 1);
+            //down right
+            case 8:
+                return new Vector2Int(current.x + 1, current.y - 1);
         }
 
         return current;
@@ -398,19 +453,20 @@ public class Pathfinder : MonoBehaviour
         Vector2 grid = (actual - (boxCenter - (boxSize / 2))) / gridSize;
         grid.x = Math.Min(Math.Max(grid.x, 0), graphDimensions.x - 1);
         grid.y = Math.Min(Math.Max(grid.y, 0), graphDimensions.y - 1);
-
         
-        Vector2Int bestPoint = new Vector2Int((int) grid.x, (int) grid.y);
         
-        /*if (graph[((int) grid.x), ((int) grid.y)] == 0)
+        
+        Vector2Int bestPoint = new Vector2Int(Mathf.RoundToInt(grid.x), Mathf.RoundToInt(grid.y));
+        /*Vector2Int bestPoint = gridint;
+        if ((graph[gridint.x, gridint.y] & 1) != 1)
         {
             int bestDiff = 1024;
             for (int x = (int) nodeDensity * -2; x < nodeDensity * 2; ++x)
             {
                 for (int y = (int) nodeDensity * -2; y < nodeDensity * 2; ++y)
                 {
-                    int cx = (int) Math.Min(Math.Max(grid.x + x, 0), graphDimensions.x - 1);
-                    int cy = (int) Math.Min(Math.Max(grid.y + y, 0), graphDimensions.y - 1);
+                    int cx = Math.Min(Math.Max(gridint.x + x, 0), graphDimensions.x - 1);
+                    int cy = Math.Min(Math.Max(gridint.y + y, 0), graphDimensions.y - 1);
                     if (graph[cx, cy] != 0 && Mathf.Abs(x) + Mathf.Abs(y) < bestDiff)
                     {
                         bestDiff = Mathf.Abs(x) + Mathf.Abs(y);
@@ -439,11 +495,6 @@ public class Pathfinder : MonoBehaviour
         return false;
     }
 
-    void startChasing()
-    {
-        
-    }
-
     void pace()
     {
        /* if (waypoints.Length == 0)
@@ -457,10 +508,10 @@ public class Pathfinder : MonoBehaviour
             }
         }*/
         
-        if (!looking)
+        if (State != PathfinderState.Looking)
         {
             Vector3 direction;
-            if (!chasing)
+            if (State != PathfinderState.Chasing)
             {
                 direction = pathfindingWaypoints[currentWaypoint] - (Vector2) transform.position;
                 if (hasLight)
@@ -470,7 +521,7 @@ public class Pathfinder : MonoBehaviour
             }
             else
             {
-                direction = target.transform.position - transform.position;
+                direction = pathfindingWaypoints[currentWaypoint] - (Vector2) transform.position;
                 if (hasLight)
                 {
                     Vector2 toTarget = target.transform.position - transform.position;
@@ -487,23 +538,23 @@ public class Pathfinder : MonoBehaviour
             if (direction.magnitude <= 0.5)
             {
                 ++currentWaypoint;
-                if (currentWaypoint >= pathfindingWaypoints.Count - 1 && !chasing)
+                if (currentWaypoint >= pathfindingWaypoints.Count - 1 && State != PathfinderState.Chasing)
                 {
-                    currentPathWaypoint++;
+                    State = PathfinderState.Looking;
+                    myRB2D.velocity = Vector2.zero;
+                    currentWaypoint = 0;
+                    if (State != PathfinderState.Searching)
+                    {
+                        currentPathWaypoint++;
+                    }
+                    
                     if (currentPathWaypoint >= waypoints.Length)
                     {
                         currentPathWaypoint = 0;
                     }
-
                     
-                    if (!chasing)
-                    {
-                        looking = true;
-                        targetAngle = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 180);
-                    }
-                    myRB2D.velocity = Vector2.zero;
+                    targetAngle = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 180);
                     pathfindingWaypoints = a_star_search(actualToGrid(currentPos), actualToGrid(waypoints[currentPathWaypoint]));
-                    currentWaypoint = 0;
                     currentTarget = pathfindingWaypoints[currentWaypoint];
                     return;
                 }
