@@ -157,6 +157,10 @@ public class Pathfinder : MonoBehaviour
     {
         if (State != PathfinderState.Paused)
         {
+            if (pauseTimer < pauseTime)
+            {
+                pauseTimer += Time.deltaTime / 2;
+            }
             SearchForTarget();
             if (State != PathfinderState.Paused) pace();
         }
