@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 8696373187231825601}
   - component: {fileID: 8696373187231825600}
   - component: {fileID: 8696373187231825615}
-  - component: {fileID: 8696373187231825602}
+  - component: {fileID: -4689384427731042212}
   m_Layer: 0
   m_Name: RenaissanceArtifact
   m_TagString: Untagged
@@ -98,9 +98,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 737062dc57ae42f0bb59d3a9949c7e97, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  type: 0
---- !u!58 &8696373187231825602
-CircleCollider2D:
+  type: 3
+--- !u!60 &-4689384427731042212
+PolygonCollider2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -109,9 +109,22 @@ CircleCollider2D:
   m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
-  m_IsTrigger: 1
+  m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}
-  serializedVersion: 2
-  m_Radius: 0.5
+  m_SpriteTilingProperty:
+    border: {x: 0, y: 0, z: 0, w: 0}
+    pivot: {x: 0.5, y: 0.5}
+    oldSize: {x: 1.0416666, y: 1.25}
+    newSize: {x: 1, y: 1}
+    adaptiveTilingThreshold: 0.5
+    drawMode: 0
+    adaptiveTiling: 0
+  m_AutoTiling: 0
+  m_Points:
+    m_Paths:
+    - - {x: -0.5208334, y: 0.625}
+      - {x: -0.5208334, y: -0.625}
+      - {x: 0.5208334, y: -0.625}
+      - {x: 0.5208334, y: 0.625}
