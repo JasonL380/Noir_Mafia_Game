@@ -97,15 +97,15 @@ public class Pathfinder : MonoBehaviour
     public Vector2 ColliderSize;
     
     private Vector2 pausedPosition; //the position that the player stopped at
-    public float pauseTime; //the time that the pathfinder should remain paused for
     public float pauseMovementThreshold; //the distance that the player needs to move in order to be detected while paused
 
-    private float pauseTimer;
+    private PlayerMovement player;
     
     private void Start()
     {
         myAnim = GetComponent<Animator>();
-        
+
+        player = target.GetComponent<PlayerMovement>();
         //print("initializing pathfinder");
         myRB2D = GetComponent<Rigidbody2D>();
         //target = waypoints[0];
@@ -162,35 +162,43 @@ public class Pathfinder : MonoBehaviour
     {
         if (State != PathfinderState.Paused)
         {
-            if (pauseTimer < pauseTime)
-            {
-                pauseTimer += Time.deltaTime / 2;
-            }
             SearchForTarget();
             if (State != PathfinderState.Paused) pace();
         }
         else
         {
-            if (pauseTimer > 0)
+            Vector2 toTarget = (target.transform.position - transform.position);
+            Quaternion angle = Quaternion.Euler(0,0,Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg - 90);
+            // print(fov + " angle: " + angle + " rot: " + light.transform.rotation.eulerAngles.z);
+            if (Quaternion.Angle(angle, light.transform.rotation) < fov * (State == PathfinderState.Chasing ? 2 : 1) &&
+                toTarget.sqrMagnitude < detectionRange * detectionRange)
             {
-                RaycastHit2D ray = Physics2D.Linecast(transform.position, target.transform.position, wallLayers);
-
-                if (ray.collider == null)
+                if (player.power > 0)
                 {
-                    pauseTimer -= Time.deltaTime;
+                    RaycastHit2D ray = Physics2D.Linecast(transform.position, target.transform.position, wallLayers);
+
+                    if (ray.collider == null)
+                    {
+                        player.visible = true;
+                    }
+                    else
+                    {
+                        player.visible = false;
+                        State = lastState;
+                    }
                 }
                 else
                 {
-                    State = lastState;
+                    print("Start chasing");
+                    State = PathfinderState.Chasing;
+                    targetAngle = Quaternion.Euler(0, 0, (Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg) - 90);
+                    //State = lastState;
                 }
             }
             else
             {
-                print("Start chasing");
-                State = PathfinderState.Chasing;
-                Vector2 toTarget = (target.transform.position - transform.position);
-                targetAngle = Quaternion.Euler(0,0,(Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg) - 90);
-                //State = lastState;
+                player.visible = false;
+                State = lastState;
             }
         }
     }
@@ -216,8 +224,8 @@ public class Pathfinder : MonoBehaviour
                         State = PathfinderState.Paused;
                         pausedPosition = target.transform.position;
                         myRB2D.velocity = Vector2.zero;
-                        pauseTimer = pauseTime;
-                        if(displayDebug) Debug.DrawLine(transform.position, target.transform.position, Color.cyan, pauseTime);
+                        player.visible = true;
+                        //if(displayDebug) Debug.DrawLine(transform.position, target.transform.position, Color.cyan, pauseTime);
                     }
                     else
                     {
