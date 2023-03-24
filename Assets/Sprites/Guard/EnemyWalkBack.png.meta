@@ -1,5 +1,5 @@
 fileFormatVersion: 2
-guid: 3cb0b4736b3b6d2a5857045069f4ddf1
+guid: 9e6863a808094c67f9bb0851f263af18
 TextureImporter:
   internalIDToNameTable: []
   externalObjects: {}
@@ -117,7 +117,7 @@ TextureImporter:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: EnemyIdle_0
+      name: EnemyWalkBack_0
       rect:
         serializedVersion: 2
         x: 0
@@ -131,14 +131,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 3c3b3825343a31bc8b4c5f4b61d3d523
-      internalID: 1960470890
+      spriteID: d82db91a86a56f26d8225a4f3c7b166d
+      internalID: 1565742851
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: EnemyIdle_1
+      name: EnemyWalkBack_1
       rect:
         serializedVersion: 2
         x: 16
@@ -152,14 +152,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: 53d8f0d7c60305b2ab7ec9132d9d2fae
-      internalID: -1140524299
+      spriteID: 8381119a86234e97392cc84aee6a88f7
+      internalID: 575732073
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: EnemyIdle_2
+      name: EnemyWalkBack_2
       rect:
         serializedVersion: 2
         x: 32
@@ -173,14 +173,14 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: c97859be2d91ce142a18d979ac6eddbe
-      internalID: -1233233282
+      spriteID: ff1a97e5a2fa65609a96804c0181d8ef
+      internalID: -356831572
       vertices: []
       indices: 
       edges: []
       weights: []
     - serializedVersion: 2
-      name: EnemyIdle_3
+      name: EnemyWalkBack_3
       rect:
         serializedVersion: 2
         x: 48
@@ -194,8 +194,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: 0
       bones: []
-      spriteID: a45333ca79b803d828b9bd6f5a8d432f
-      internalID: 870680594
+      spriteID: 768286d6f15f4fed98a863957e45defc
+      internalID: -760888226
       vertices: []
       indices: 
       edges: []
@@ -211,10 +211,10 @@ TextureImporter:
     weights: []
     secondaryTextures: []
     nameFileIdTable:
-      EnemyIdle_0: 1960470890
-      EnemyIdle_3: 870680594
-      EnemyIdle_1: -1140524299
-      EnemyIdle_2: -1233233282
+      EnemyWalkBack_1: 575732073
+      EnemyWalkBack_0: 1565742851
+      EnemyWalkBack_2: -356831572
+      EnemyWalkBack_3: -760888226
   spritePackingTag: 
   pSDRemoveMatte: 0
   pSDShowRemoveMatteOption: 0

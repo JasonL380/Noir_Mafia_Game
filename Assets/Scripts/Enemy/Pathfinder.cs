@@ -30,6 +30,8 @@ public class Pathfinder : MonoBehaviour
 
     public float speed; //the speed that this should move at, do not set this too high or it won't work
 
+    public Animator myAnim;
+    
     [Tooltip("list of points for the AI follow")]
     public Vector2[] waypoints;
 
@@ -102,6 +104,8 @@ public class Pathfinder : MonoBehaviour
     
     private void Start()
     {
+        myAnim = GetComponent<Animator>();
+        
         //print("initializing pathfinder");
         myRB2D = GetComponent<Rigidbody2D>();
         //target = waypoints[0];
@@ -147,6 +151,7 @@ public class Pathfinder : MonoBehaviour
             else
             {
 //                print("done looking " + lookstep);
+                myAnim.SetBool("walking", true);
                 State = PathfinderState.Pacing;
                 lookstep = 0;
             }
@@ -610,6 +615,7 @@ public class Pathfinder : MonoBehaviour
                 if (currentWaypoint >= pathfindingWaypoints.Count - 1 && State != PathfinderState.Chasing)
                 {
                     State = PathfinderState.Looking;
+                    myAnim.SetBool("walking", false);
                     myRB2D.velocity = Vector2.zero;
                     currentWaypoint = 0;
                     if (State != PathfinderState.Searching)
@@ -630,7 +636,11 @@ public class Pathfinder : MonoBehaviour
                 currentTarget = pathfindingWaypoints[currentWaypoint];
                 //a_star_search(actualToGrid(currentPos), actualToGrid(waypoints[currentWaypoint]));
             }
-        
+            
+            myAnim.SetFloat("X", direction.normalized.x);
+            myAnim.SetFloat("Y", direction.normalized.y);
+            
+            
             myRB2D.velocity = direction.normalized * speed;
         }
     }
