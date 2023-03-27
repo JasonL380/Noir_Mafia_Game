@@ -17,6 +17,8 @@ public class CameraController : MonoBehaviour
     public GameObject target;
     [Tooltip("Keep between 0 and 1, the closer to 1 the faster it centers"), Range(0,1)]
     public float smoothVal = 0.5f;
+
+    public Vector2 offset;
     
     //screen shake variables
     [Tooltip("Time to shake if you want it t start immediately"), Min(0)]
@@ -40,7 +42,7 @@ public class CameraController : MonoBehaviour
         if (target != null)
         {
             //grab the target location
-            Vector3 targetPos = target.transform.position;
+            Vector3 targetPos = target.transform.position + (Vector3) offset;
             
             //adjust the z value correctly
             targetPos.z = transform.position.z;
