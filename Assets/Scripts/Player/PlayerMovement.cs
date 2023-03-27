@@ -36,10 +36,16 @@ public class PlayerMovement : MonoBehaviour
         if (visible)
         {
             power -= Time.deltaTime;
+            _animator.SetBool("dashing", true);
         }
         else if (power < maxPower)
         {
             power += Time.deltaTime / 2;
+            _animator.SetBool("dashing", false);
+        }
+        else
+        {
+            _animator.SetBool("dashing", false);
         }
         
         Vector2 velocity = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")) * moveSpeed;
