@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using DefaultNamespace;
 using UnityEditor.Rendering.LookDev;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
@@ -18,6 +19,8 @@ public class PlayerMovement : MonoBehaviour
 
     public bool visible = false;
     
+    public bool[] artifacts = {false, false, false, false};
+    
     // Start is called before the first frame update
     void Start()
     {
@@ -33,10 +36,16 @@ public class PlayerMovement : MonoBehaviour
         if (visible)
         {
             power -= Time.deltaTime;
+            _animator.SetBool("dashing", true);
         }
         else if (power < maxPower)
         {
             power += Time.deltaTime / 2;
+            _animator.SetBool("dashing", false);
+        }
+        else
+        {
+            _animator.SetBool("dashing", false);
         }
         
         Vector2 velocity = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")) * moveSpeed;
@@ -54,5 +63,16 @@ public class PlayerMovement : MonoBehaviour
 
         powerLight.pointLightInnerAngle = power / maxPower * 40;
         powerLight.pointLightOuterAngle = power / maxPower * 40;
+    }
+
+    private void OnTriggerEnter2D(Collider2D col)
+    {
+        Artifact artifact = col.gameObject.GetComponent<Artifact>();
+        if (artifact != null)
+        {
+            artifacts[(int) artifact.type] = true;
+            Destroy(artifact.gameObject, 0.5F);
+            _animator.SetFloat("grabbing", 1);
+        }
     }
 }
