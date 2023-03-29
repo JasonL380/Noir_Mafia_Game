@@ -8,12 +8,9 @@
  */
 using System;
 using System.Collections.Generic;
-using Unity.VisualScripting;
-using UnityEditor.Search;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using Utils;
-using Random = UnityEngine.Random;
 
 public class Pathfinder : MonoBehaviour
 {
