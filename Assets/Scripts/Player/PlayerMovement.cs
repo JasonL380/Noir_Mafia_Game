@@ -19,6 +19,8 @@ public class PlayerMovement : MonoBehaviour
     
     public bool[] artifacts = {false, false, false, false};
 
+    public Animator[] artifactIcons;
+    
     public GameObject deathScreen;
     
     // Start is called before the first frame update
@@ -71,8 +73,17 @@ public class PlayerMovement : MonoBehaviour
         if (artifact != null)
         {
             artifacts[(int) artifact.type] = true;
+            artifactIcons[(int) artifact.type].SetBool("color", true);
             Destroy(artifact.gameObject, 0.5F);
             _animator.SetFloat("grabbing", 1);
+        }
+        else
+        {
+            Pathfinder pathfinder = col.gameObject.GetComponent<Pathfinder>();
+            if (pathfinder != null)
+            {
+                SceneManager.LoadScene("PlayScene");
+            }
         }
     }
 

@@ -8,10 +8,14 @@
  */
 using System;
 using System.Collections.Generic;
+using System.IO;
+using UnityEditor;
+using UnityEditor.U2D.Path;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using Utils;
 
+//[ExecuteInEditMode]
 public class Pathfinder : MonoBehaviour
 {
 
@@ -43,7 +47,6 @@ public class Pathfinder : MonoBehaviour
     private Rigidbody2D myRB2D;
     public bool displayDebug = true;
     public Vector2 currentTarget;
-
     [Tooltip("The center of the pathfinding area")]
     public Vector2 boxCenter;
 
@@ -97,107 +100,121 @@ public class Pathfinder : MonoBehaviour
     public float pauseMovementThreshold; //the distance that the player needs to move in order to be detected while paused
 
     private PlayerMovement player;
-    
+
     private void Start()
     {
-        myAnim = GetComponent<Animator>();
-
-        player = target.GetComponent<PlayerMovement>();
-        //print("initializing pathfinder");
-        myRB2D = GetComponent<Rigidbody2D>();
-        //target = waypoints[0];
-        generateGraph();
-        //print(graph[graphDimensions.x/2,graphDimensions.y/2]);
-        pathfindingWaypoints = a_star_search(actualToGrid(transform.position),
-            actualToGrid(waypoints[currentPathWaypoint]));
-
-        lightComponent = GetComponentInChildren<Light2D>();
-        if (lightComponent != null)
+        //UnityEditor.Editor.CreateEditor()_editor.controller = new EditablePathController();
+        if (Application.isPlaying)
         {
-            hasLight = true;
-            light = lightComponent.gameObject;
-        }
+            //PathUtility
+            myAnim = GetComponent<Animator>();
 
-        fov = lightComponent.pointLightInnerAngle / 2;
-        outerfov = lightComponent.pointLightOuterAngle / 2;
-        //print(pathfindingWaypoints.Count);
-        //print(gridToActual(graphDimensions));
-        //print(actualToGrid(transform.position));
-        //print(gridToActual(actualToGrid(transform.position)));
-        detectionRange = lightComponent.pointLightOuterRadius * 0.9F;
-        chaseRange = detectionRange;
+            player = target.GetComponent<PlayerMovement>();
+            //print("initializing pathfinder");
+            myRB2D = GetComponent<Rigidbody2D>();
+            //target = waypoints[0];
+            generateGraph();
+            //print(graph[graphDimensions.x/2,graphDimensions.y/2]);
+            pathfindingWaypoints = a_star_search(actualToGrid(transform.position),
+                actualToGrid(waypoints[currentPathWaypoint]));
+
+            lightComponent = GetComponentInChildren<Light2D>();
+            if (lightComponent != null)
+            {
+                hasLight = true;
+                light = lightComponent.gameObject;
+            }
+
+            fov = lightComponent.pointLightInnerAngle / 2;
+            outerfov = lightComponent.pointLightOuterAngle / 2;
+            //print(pathfindingWaypoints.Count);
+            //print(gridToActual(graphDimensions));
+            //print(actualToGrid(transform.position));
+            //print(gridToActual(actualToGrid(transform.position)));
+            detectionRange = lightComponent.pointLightOuterRadius * 0.9F;
+            chaseRange = detectionRange;
+        }
     }
 
     private void Update()
     {
-        if(State != PathfinderState.Paused)
+        if (Application.isPlaying)
         {
-            light.transform.rotation = Quaternion.RotateTowards(light.transform.rotation, targetAngle,
-                State == PathfinderState.Looking ? 1.125F : 5F);
-        }
-
-        //if(displayDebug) Debug.DrawLine(transform.position, );
-
-        if (State == PathfinderState.Looking && Quaternion.Angle(targetAngle, light.transform.rotation) < 2)
-        {
-            if (lookstep == 0)
+            if(State != PathfinderState.Paused)
             {
-                targetAngle = Quaternion.Euler(0, 0, targetAngle.eulerAngles.z + 180);
-                lookstep = 1;
+                light.transform.rotation = Quaternion.RotateTowards(light.transform.rotation, targetAngle,
+                    State == PathfinderState.Looking ? 1.125F : 5F);
             }
-            else
+
+            //if(displayDebug) Debug.DrawLine(transform.position, );
+
+            if (State == PathfinderState.Looking && Quaternion.Angle(targetAngle, light.transform.rotation) < 2)
             {
+                if (lookstep == 0)
+                {
+                    targetAngle = Quaternion.Euler(0, 0, targetAngle.eulerAngles.z + 180);
+                    lookstep = 1;
+                }
+                else
+                {
 //                print("done looking " + lookstep);
-                myAnim.SetBool("walking", true);
-                State = PathfinderState.Pacing;
-                lookstep = 0;
+                    myAnim.SetBool("walking", true);
+                    State = PathfinderState.Pacing;
+                    lookstep = 0;
+                }
             }
         }
+            
     }
 
     private void FixedUpdate()
     {
-        if (State != PathfinderState.Paused)
+        if (Application.isPlaying)
         {
-            SearchForTarget();
-            if (State != PathfinderState.Paused) pace();
-        }
-        else
-        {
-            Vector2 toTarget = (target.transform.position - transform.position);
-            Quaternion angle = Quaternion.Euler(0,0,Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg - 90);
-            // print(fov + " angle: " + angle + " rot: " + light.transform.rotation.eulerAngles.z);
-            if (Quaternion.Angle(angle, light.transform.rotation) < fov * (State == PathfinderState.Chasing ? 2 : 1) &&
-                toTarget.sqrMagnitude < detectionRange * detectionRange)
+            if (State != PathfinderState.Paused)
             {
-                if (player.power > 0)
+                SearchForTarget();
+                if (State != PathfinderState.Paused) pace();
+            }
+            else
+            {
+                Vector2 toTarget = (target.transform.position - transform.position);
+                Quaternion angle = Quaternion.Euler(0,0,Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg - 90);
+                // print(fov + " angle: " + angle + " rot: " + light.transform.rotation.eulerAngles.z);
+                if (Quaternion.Angle(angle, light.transform.rotation) < fov * (State == PathfinderState.Chasing ? 2 : 1) &&
+                    toTarget.sqrMagnitude < detectionRange * detectionRange)
                 {
-                    RaycastHit2D ray = Physics2D.Linecast(transform.position, target.transform.position, wallLayers);
-
-                    if (ray.collider == null)
+                    if (player.power > 0)
                     {
-                        player.visible = true;
+                        RaycastHit2D ray = Physics2D.Linecast(transform.position, target.transform.position, wallLayers);
+
+                        if (ray.collider == null)
+                        {
+                            player.visible = true;
+                        }
+                        else
+                        {
+                            player.visible = false;
+                            State = lastState;
+                        }
                     }
                     else
                     {
-                        player.visible = false;
-                        State = lastState;
+                        print("Start chasing");
+                        State = PathfinderState.Chasing;
+                        myAnim.SetBool("walking", true);
+                        targetAngle = Quaternion.Euler(0, 0, (Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg) - 90);
+                        //State = lastState;
                     }
                 }
                 else
                 {
-                    print("Start chasing");
-                    State = PathfinderState.Chasing;
-                    targetAngle = Quaternion.Euler(0, 0, (Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg) - 90);
-                    //State = lastState;
+                    player.visible = false;
+                    State = lastState;
                 }
             }
-            else
-            {
-                player.visible = false;
-                State = lastState;
-            }
         }
+        
     }
 
 
@@ -234,6 +251,7 @@ public class Pathfinder : MonoBehaviour
                 }
                 else
                 {
+                    player.visible = false;
                     if (State == PathfinderState.Chasing)
                     {
                         State = PathfinderState.Searching;
@@ -271,6 +289,7 @@ public class Pathfinder : MonoBehaviour
             }*/
             else
             {
+                player.visible = false;
                 if (State == PathfinderState.Chasing)
                 {
                     State = PathfinderState.Pacing;

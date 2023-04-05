@@ -11,6 +11,7 @@ using UnityEditor;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
+//[ExecuteInEditMode]
 public class CameraController : MonoBehaviour
 {
     [Tooltip("Will center this object")]
