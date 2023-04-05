@@ -9,6 +9,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using DefaultNamespace;
+using Unity.VisualScripting;
 using UnityEditor;
 using UnityEditor.U2D.Path;
 using UnityEngine;
@@ -80,6 +82,7 @@ public class Pathfinder : MonoBehaviour
     public float detectionRange;
 
     private GameObject light;
+    private GameObject minimapArrow;
     private Light2D lightComponent;
     private bool hasLight = false;
 
@@ -125,6 +128,8 @@ public class Pathfinder : MonoBehaviour
                 light = lightComponent.gameObject;
             }
 
+            minimapArrow = GetComponentInChildren<Arrow>().gameObject;
+
             fov = lightComponent.pointLightInnerAngle / 2;
             outerfov = lightComponent.pointLightOuterAngle / 2;
             //print(pathfindingWaypoints.Count);
@@ -144,6 +149,7 @@ public class Pathfinder : MonoBehaviour
             {
                 light.transform.rotation = Quaternion.RotateTowards(light.transform.rotation, targetAngle,
                     State == PathfinderState.Looking ? 1.125F : 5F);
+                minimapArrow.transform.rotation = light.transform.rotation;
             }
 
             //if(displayDebug) Debug.DrawLine(transform.position, );

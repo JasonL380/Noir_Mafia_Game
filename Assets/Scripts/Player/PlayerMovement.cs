@@ -22,10 +22,13 @@ public class PlayerMovement : MonoBehaviour
     public Animator[] artifactIcons;
     
     public GameObject deathScreen;
+
+    private GameObject arrow;
     
     // Start is called before the first frame update
     void Start()
     {
+        arrow = GetComponentInChildren<Arrow>().gameObject;
         myRB2D = GetComponent<Rigidbody2D>();
         _animator = GetComponent<Animator>();
 
@@ -65,6 +68,8 @@ public class PlayerMovement : MonoBehaviour
 
         powerLight.pointLightInnerAngle = power / maxPower * 40;
         powerLight.pointLightOuterAngle = power / maxPower * 40;
+        
+        arrow.transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(velocity.y, velocity.x));
     }
 
     private void OnTriggerEnter2D(Collider2D col)
