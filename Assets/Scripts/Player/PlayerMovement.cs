@@ -23,7 +23,7 @@ public class PlayerMovement : MonoBehaviour
     
     public GameObject deathScreen;
 
-    private GameObject arrow;
+    public GameObject arrow;
     
     // Start is called before the first frame update
     void Start()
@@ -60,6 +60,7 @@ public class PlayerMovement : MonoBehaviour
             _animator.SetBool("walking", true);
             _animator.SetFloat("X", velocity.normalized.x);
             _animator.SetFloat("Y", velocity.normalized.y);
+            arrow.transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(velocity.x * -1, velocity.y) * Mathf.Rad2Deg);
         }
         else
         {
@@ -69,7 +70,7 @@ public class PlayerMovement : MonoBehaviour
         powerLight.pointLightInnerAngle = power / maxPower * 40;
         powerLight.pointLightOuterAngle = power / maxPower * 40;
         
-        arrow.transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(velocity.y, velocity.x));
+        
     }
 
     private void OnTriggerEnter2D(Collider2D col)

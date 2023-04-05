@@ -11,7 +11,7 @@ namespace DefaultNamespace
     {
         public void play()
         {
-            SceneManager.LoadScene("PlayScene");
+            SceneManager.LoadScene("Opening Cutscene");
         }
     }
 }
