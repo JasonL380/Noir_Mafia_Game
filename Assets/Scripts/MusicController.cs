@@ -2,11 +2,7 @@
 // Date: 04/05/2023
 // Desc:
 
-using System;
-using Unity.VisualScripting;
-using UnityEditor.Experimental.GraphView;
 using UnityEngine;
-using UnityEngine.Serialization;
 
 namespace DefaultNamespace
 {
