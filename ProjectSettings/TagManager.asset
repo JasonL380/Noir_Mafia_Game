@@ -42,6 +42,9 @@ TagManager:
   - name: Default
     uniqueID: 0
     locked: 0
+  - name: Artifact
+    uniqueID: 3484730311
+    locked: 0
   - name: Power Bar
     uniqueID: 2621964587
     locked: 0

@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 252295430300926016}
   - component: {fileID: 6768804998117443277}
-  - component: {fileID: 8765302303066683719}
+  - component: {fileID: 2785841018446640774}
   m_Layer: 0
   m_Name: Death Screen
   m_TagString: Untagged
@@ -85,23 +85,19 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!95 &8765302303066683719
-Animator:
-  serializedVersion: 4
+--- !u!111 &2785841018446640774
+Animation:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7202644665158247420}
   m_Enabled: 1
-  m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 2bbfb58171fdbdaddb63e1f347ff042f, type: 2}
-  m_CullingMode: 0
-  m_UpdateMode: 0
-  m_ApplyRootMotion: 0
-  m_LinearVelocityBlending: 0
-  m_StabilizeFeet: 0
-  m_WarningMessage: 
-  m_HasTransformHierarchy: 1
-  m_AllowConstantClipSamplingOptimization: 1
-  m_KeepAnimatorControllerStateOnDisable: 0
+  serializedVersion: 3
+  m_Animation: {fileID: 7400000, guid: 811dd970534a2d85f977ae6ce41bfe4b, type: 2}
+  m_Animations:
+  - {fileID: 7400000, guid: 811dd970534a2d85f977ae6ce41bfe4b, type: 2}
+  m_WrapMode: 0
+  m_PlayAutomatically: 1
+  m_AnimatePhysics: 0
+  m_CullingType: 0

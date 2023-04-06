@@ -6,54 +6,81 @@ using System;
 using Unity.VisualScripting;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 namespace DefaultNamespace
 {
     public class MusicController : MonoBehaviour
     {
-        private AudioSource _source;
+        private AudioSource[] _source;
 
         public AudioClip DefaultClip;
 
-        public LayerMask MusicAreaLayer;
+        public LayerMask musicAreaLayer;
 
         public GameObject player;
+
+        public float fadeTime;
         
+        private int currentSource;
+
         private void Start()
         {
-            _source = GetComponent<AudioSource>();
-            _source.clip = DefaultClip;
-            _source.Play();
+            _source = GetComponents<AudioSource>();
+            _source[0].clip = DefaultClip;
+            _source[0].Play();
         }
-        
+
+        public void Update()
+        {
+            if (_source[currentSource].volume < 0.99)
+            {
+                _source[currentSource].volume += (1 / fadeTime) * Time.deltaTime;
+            }
+
+            if (_source[(currentSource == 1 ? 0 : 1)].volume > 0.01)
+            {
+                _source[(currentSource == 1 ? 0 : 1)].volume -= (1 / fadeTime) * Time.deltaTime;
+            }
+            else if(_source[(currentSource == 1 ? 0 : 1)].isPlaying)
+            {
+                _source[(currentSource == 1 ? 0 : 1)].Stop();
+            }
+        }
+
         private void OnTriggerEnter2D(Collider2D col)
         {
             MusicArea area = col.gameObject.GetComponent<MusicArea>();
 
             if (area != null)
             {
-                _source.Stop();
-                _source.clip = area.clip;
-                _source.Play();
+                switch_music(area.clip);
             }
         }
 
         private void OnTriggerExit2D(Collider2D other)
         {
-            Collider2D collider2D = Physics2D.OverlapPoint(transform.position, MusicAreaLayer);
+            if (other.GetComponent<MusicArea>() != null)
+            {
+                Collider2D collider2D = Physics2D.OverlapPoint(transform.position, musicAreaLayer);
 
-            if (collider2D != null)
-            {
-                _source.Stop();
-                _source.clip = collider2D.GetComponent<MusicArea>().clip;
-                _source.Play();
+                if (collider2D != null)
+                {
+                    switch_music(collider2D.GetComponent<MusicArea>().clip);
+                }
+                else
+                {
+                    switch_music(DefaultClip);
+                }
             }
-            else
-            {
-                _source.Stop();
-                _source.clip = DefaultClip;
-                _source.Play();
-            }
+        }
+
+        private void switch_music(AudioClip clip)
+        {
+            currentSource = (currentSource == 1 ? 0 : 1);
+
+            _source[currentSource].clip = clip;
+            _source[currentSource].Play();
         }
     }
 }
