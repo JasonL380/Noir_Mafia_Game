@@ -22,16 +22,20 @@ public class PlayerMovement : MonoBehaviour
     public bool[] artifacts = {false, false, false, false};
 
     public Animator[] artifactIcons;
+
+    public AudioClip[] artifactSounds;
     
     public GameObject deathScreen;
 
     public GameObject arrow;
 
+    private AudioSource _source;
     
     
     // Start is called before the first frame update
     void Start()
     {
+        _source = GetComponent<AudioSource>();
         arrow = GetComponentInChildren<Arrow>().gameObject;
         myRB2D = GetComponent<Rigidbody2D>();
         _animator = GetComponent<Animator>();
@@ -42,7 +46,7 @@ public class PlayerMovement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (visible)
+        if (visible && power > (maxPower / 8) * -1)
         {
             power -= Time.deltaTime;
             _animator.SetBool("dashing", true);
@@ -84,13 +88,23 @@ public class PlayerMovement : MonoBehaviour
         {
             artifacts[(int) artifact.type] = true;
             artifactIcons[(int) artifact.type].SetBool("color", true);
+            if (artifactSounds[(int) artifact.type] != null)
+            {
+                _source.PlayOneShot(artifactSounds[(int) artifact.type]);
+            }
+            else
+            {
+                print("unable to play sound");
+            }
+
+            ;
             Destroy(artifact.gameObject, 0.5F);
-            _animator.SetFloat("grabbing", 1);
+            _animator.SetTrigger("grab");
         }
         else
         {
             Pathfinder pathfinder = col.gameObject.GetComponent<Pathfinder>();
-            if (pathfinder != null)
+            if (pathfinder != null && visible)
             {
                 SceneManager.LoadScene("PlayScene");
             }
@@ -100,7 +114,7 @@ public class PlayerMovement : MonoBehaviour
     private void OnCollisionEnter2D(Collision2D col)
     {
         Pathfinder pathfinder = col.gameObject.GetComponent<Pathfinder>();
-        if (pathfinder != null)
+        if (pathfinder != null && visible)
         {
             SceneManager.LoadScene("PlayScene");
         }

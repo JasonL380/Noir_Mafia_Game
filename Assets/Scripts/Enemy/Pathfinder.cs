@@ -197,6 +197,7 @@ public class Pathfinder : MonoBehaviour
                         else
                         {
                             player.visible = false;
+                            myAnim.SetBool("walking",true);
                             State = lastState;
                         }
                     }
@@ -239,6 +240,7 @@ public class Pathfinder : MonoBehaviour
                     {
                         print("saw target, waiting");
                         State = PathfinderState.Paused;
+                        myAnim.SetBool("walking", false);
                         pausedPosition = target.transform.position;
                         myRB2D.velocity = Vector2.zero;
                         player.visible = true;
@@ -296,6 +298,7 @@ public class Pathfinder : MonoBehaviour
                 player.visible = false;
                 if (State == PathfinderState.Chasing)
                 {
+                    player.chased = false;
                     State = PathfinderState.Pacing;
                     pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(waypoints[currentPathWaypoint]));
                 }
