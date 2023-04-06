@@ -106,7 +106,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8121fc090be740858db9913476039adc, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  speed: 2
+  speed: 3.75
   myAnim: {fileID: 2409617723715684887}
   waypoints:
   - {x: -10, y: -6}
@@ -116,9 +116,9 @@ MonoBehaviour:
     m_Bits: 8
   displayDebug: 1
   currentTarget: {x: 0, y: 0}
-  boxCenter: {x: 0, y: 0}
-  boxSize: {x: 400, y: 400}
-  nodeDensity: 3
+  boxCenter: {x: 1, y: 87}
+  boxSize: {x: 360, y: 230}
+  nodeDensity: 1
   target: {fileID: 0}
   chaseRange: 4
   detectionRange: 3
@@ -127,6 +127,10 @@ MonoBehaviour:
   lookstep: 0
   ColliderSize: {x: 0.5, y: 1.5}
   pauseMovementThreshold: 0.25
+  randomWandering: 0
+  randomWanderingBounds:
+    m_Center: {x: 0, y: 0, z: 0}
+    m_Extent: {x: 0, y: 0, z: 0}
 --- !u!58 &2409617723715684884
 CircleCollider2D:
   m_ObjectHideFlags: 0
@@ -134,15 +138,15 @@ CircleCollider2D:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2409617723715684872}
-  m_Enabled: 0
+  m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
   m_IsTrigger: 0
   m_UsedByEffector: 0
   m_UsedByComposite: 0
-  m_Offset: {x: 0, y: 0}
+  m_Offset: {x: 0, y: -1}
   serializedVersion: 2
-  m_Radius: 0.25
+  m_Radius: 0.5
 --- !u!50 &2409617723715684885
 Rigidbody2D:
   serializedVersion: 4
@@ -220,7 +224,7 @@ CapsuleCollider2D:
   m_Enabled: 1
   m_Density: 1
   m_Material: {fileID: 0}
-  m_IsTrigger: 0
+  m_IsTrigger: 1
   m_UsedByEffector: 0
   m_UsedByComposite: 0
   m_Offset: {x: 0, y: 0}
@@ -500,7 +504,7 @@ SpriteRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: a97c105638bdf8b4a8650670310a4cd3, type: 2}
+  - {fileID: 2100000, guid: 9dfc825aed78fcd4ba02077103263b40, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

@@ -12,8 +12,8 @@ using DefaultNamespace;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using Utils;
+using Random = System.Random;
 
-//[ExecuteInEditMode]
 public class Pathfinder : MonoBehaviour
 {
 
@@ -100,11 +100,38 @@ public class Pathfinder : MonoBehaviour
 
     private PlayerMovement player;
 
+    public bool randomWandering;
+
+    [Tooltip("Area that random wandering can happen in, this does nothing if random wandering is not enabled")]
+    public Bounds randomWanderingBounds;
+    
     private void Start()
     {
         //UnityEditor.Editor.CreateEditor()_editor.controller = new EditablePathController();
         if (Application.isPlaying)
         {
+            if (randomWandering)
+            {
+                Vector2Int nextPoint = Vector2Int.zero;
+                Random rand = new Random();
+
+                Vector2Int min = Vector2Int.zero;
+            
+                Vector2Int max = graphDimensions;
+
+                while (true)
+                {
+                    nextPoint = new Vector2Int(rand.Next(min.x, max.x), rand.Next(min.y, max.y));
+                    if (nextPoint.x >= 0 && nextPoint.x <= graphDimensions.x - 1 && nextPoint.y >= 0 &&
+                        nextPoint.y <= graphDimensions.y - 1 && graph[nextPoint.x, nextPoint.y] != 0)
+                    {
+                        break;
+                    }
+                }
+
+                transform.position = gridToActual(nextPoint);
+            }
+            
             //PathUtility
             myAnim = GetComponent<Animator>();
 
@@ -114,8 +141,7 @@ public class Pathfinder : MonoBehaviour
             //target = waypoints[0];
             generateGraph();
             //print(graph[graphDimensions.x/2,graphDimensions.y/2]);
-            pathfindingWaypoints = a_star_search(actualToGrid(transform.position),
-                actualToGrid(waypoints[currentPathWaypoint]));
+            pathfindingWaypoints = getNextPath();
 
             lightComponent = GetComponentInChildren<Light2D>();
             if (lightComponent != null)
@@ -268,7 +294,7 @@ public class Pathfinder : MonoBehaviour
                     {
                         player.chased = false;
                         State = PathfinderState.Pacing;
-                        pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(waypoints[currentPathWaypoint]));
+                        pathfindingWaypoints = getNextPath();
                         if(displayDebug) Debug.DrawLine(transform.position, target.transform.position, Color.yellow);
                     }
                 }
@@ -300,7 +326,7 @@ public class Pathfinder : MonoBehaviour
                 {
                     player.chased = false;
                     State = PathfinderState.Pacing;
-                    pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(waypoints[currentPathWaypoint]));
+                    pathfindingWaypoints = getNextPath();
                 }
                 if(displayDebug) Debug.DrawLine(transform.position, target.transform.position, Color.red);
             }
@@ -332,7 +358,7 @@ public class Pathfinder : MonoBehaviour
 
                 //create a circle overlap with the same size as this object's collider to detect any nearby walls, aka determine if the object is able to exist at this position
                 //Collider2D collision = Physics2D.OverlapCircle(position, myCirc.radius, wallLayers);
-                Collider2D collision = Physics2D.OverlapBox(position, ColliderSize, 0, wallLayers);
+                Collider2D collision = Physics2D.OverlapCircle(position - new Vector2(0, 1), 0.5f, wallLayers);
                 //if the circle didn't collide with anything add a node here
                 if (collision == null)
                 {
@@ -658,10 +684,10 @@ public class Pathfinder : MonoBehaviour
                     {
                         currentPathWaypoint = 0;
                     }
-                    
-                    targetAngle = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 180);
-                    pathfindingWaypoints = a_star_search(actualToGrid(currentPos), actualToGrid(waypoints[currentPathWaypoint]));
+
+                    pathfindingWaypoints = getNextPath();
                     currentTarget = pathfindingWaypoints[currentWaypoint];
+                    targetAngle = Quaternion.Euler(0, 0, Mathf.Atan2(direction.y, direction.x) * Mathf.Rad2Deg - 180);
                     return;
                 }
                 currentTarget = pathfindingWaypoints[currentWaypoint];
@@ -673,6 +699,40 @@ public class Pathfinder : MonoBehaviour
             
             
             myRB2D.velocity = direction.normalized * speed;
+        }
+    }
+
+    List<Vector2> getNextPath()
+    {
+        if (randomWandering)
+        {
+            Vector2Int nextPoint = Vector2Int.zero;
+            Random rand = new Random();
+
+            Vector2Int min = Vector2Int.zero;
+            
+            Vector2Int max = graphDimensions;
+
+            while (true)
+            {
+                nextPoint = new Vector2Int(rand.Next(min.x, max.x), rand.Next(min.y, max.y));
+                if (nextPoint.x >= 0 && nextPoint.x <= graphDimensions.x - 1 && nextPoint.y >= 0 &&
+                    nextPoint.y <= graphDimensions.y - 1 && graph[nextPoint.x, nextPoint.y] != 0)
+                {
+                    break;
+                }
+            }
+                
+            
+            print(gridToActual(nextPoint));
+            
+            Debug.DrawLine(transform.position, gridToActual(nextPoint), Color.green, 1000);
+            
+            return a_star_search(actualToGrid(transform.position), nextPoint);
+        }
+        else
+        { 
+            return a_star_search(actualToGrid(transform.position), actualToGrid(waypoints[currentPathWaypoint]));
         }
     }
 }

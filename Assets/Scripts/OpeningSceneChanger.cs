@@ -15,7 +15,7 @@ namespace DefaultNamespace
         private void Update()
         {
             time -= Time.deltaTime;
-            if (time < 0)
+            if (time < 0 || Input.GetKey(KeyCode.Escape))
             {
                 SceneManager.LoadScene("PlayScene");
             }
