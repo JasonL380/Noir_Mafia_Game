@@ -17,6 +17,8 @@ public class PlayerMovement : MonoBehaviour
 
     public bool visible = false;
     
+    public bool chased = false;
+    
     public bool[] artifacts = {false, false, false, false};
 
     public Animator[] artifactIcons;
@@ -24,6 +26,8 @@ public class PlayerMovement : MonoBehaviour
     public GameObject deathScreen;
 
     public GameObject arrow;
+
+    
     
     // Start is called before the first frame update
     void Start()

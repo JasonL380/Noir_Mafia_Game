@@ -208,6 +208,7 @@ public class Pathfinder : MonoBehaviour
                     {
                         print("Start chasing");
                         State = PathfinderState.Chasing;
+                        player.chased = true;
                         myAnim.SetBool("walking", true);
                         targetAngle = Quaternion.Euler(0, 0, (Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg) - 90);
                         //State = lastState;
@@ -267,6 +268,7 @@ public class Pathfinder : MonoBehaviour
                     }
                     else if (State != PathfinderState.Searching)
                     {
+                        player.chased = false;
                         State = PathfinderState.Pacing;
                         pathfindingWaypoints = a_star_search(actualToGrid(transform.position), actualToGrid(waypoints[currentPathWaypoint]));
                         if(displayDebug) Debug.DrawLine(transform.position, target.transform.position, Color.yellow);
