@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+using System.Diagnostics.Tracing;
 using DefaultNamespace;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
@@ -15,6 +17,10 @@ public class PlayerMovement : MonoBehaviour
 
     public Light2D powerLight;
 
+    public List<Pathfinder> visibleBy;
+
+    public List<Pathfinder> chasing;
+    
     public bool visible = false;
     
     public bool chased = false;
@@ -30,6 +36,8 @@ public class PlayerMovement : MonoBehaviour
     public GameObject arrow;
 
     private AudioSource _source;
+
+    public bool caught = false;
     
     
     // Start is called before the first frame update
@@ -46,9 +54,27 @@ public class PlayerMovement : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (chasing.Count != 0)
+        {
+            chased = true;
+        }
+        else
+        {
+            chased = false;
+        }
+
+        if (visibleBy.Count != 0)
+        {
+            visible = true;
+        }
+        else
+        {
+            visible = false;
+        }
+        
         if (visible && power > (maxPower / 8) * -1)
         {
-            power -= Time.deltaTime;
+            power -= Time.deltaTime; // * visibleBy.Count;
             _animator.SetBool("dashing", true);
         }
         else if (power < maxPower)
@@ -60,25 +86,33 @@ public class PlayerMovement : MonoBehaviour
         {
             _animator.SetBool("dashing", false);
         }
-        
-        Vector2 velocity = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")) * moveSpeed;
-        myRB2D.velocity = velocity;
-        if (velocity.normalized.sqrMagnitude > 0.1)
+
+        if (!caught)
         {
-            _animator.SetBool("walking", true);
-            _animator.SetFloat("X", velocity.normalized.x);
-            _animator.SetFloat("Y", velocity.normalized.y);
-            arrow.transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(velocity.x * -1, velocity.y) * Mathf.Rad2Deg);
+            Vector2 velocity = new Vector2(Input.GetAxis("Horizontal"), Input.GetAxis("Vertical")) * moveSpeed;
+            myRB2D.velocity = velocity;
+            if (velocity.normalized.sqrMagnitude > 0.1)
+            {
+                _animator.SetBool("walking", true);
+                _animator.SetFloat("X", velocity.normalized.x);
+                _animator.SetFloat("Y", velocity.normalized.y);
+                arrow.transform.rotation = Quaternion.Euler(0, 0, Mathf.Atan2(velocity.x * -1, velocity.y) * Mathf.Rad2Deg);
+            }
+            else
+            {
+                _animator.SetBool("walking", false);
+            }
+
+            powerLight.pointLightInnerAngle = power / maxPower * 40;
+            powerLight.pointLightOuterAngle = power / maxPower * 40;
         }
         else
         {
-            _animator.SetBool("walking", false);
+            if (Input.GetKey(KeyCode.Escape))
+            {
+                SceneManager.LoadScene("PlayScene");
+            }
         }
-
-        powerLight.pointLightInnerAngle = power / maxPower * 40;
-        powerLight.pointLightOuterAngle = power / maxPower * 40;
-        
-        
     }
 
     private void OnTriggerEnter2D(Collider2D col)
@@ -104,9 +138,11 @@ public class PlayerMovement : MonoBehaviour
         else
         {
             Pathfinder pathfinder = col.gameObject.GetComponent<Pathfinder>();
-            if (pathfinder != null && visible)
+            if (pathfinder != null && visible && !caught)
             {
-                SceneManager.LoadScene("PlayScene");
+                caught = true;
+                _animator.SetBool("walking", false);
+                Instantiate(deathScreen, Camera.main.gameObject.transform.position + new Vector3(0,0, 5), Quaternion.identity, Camera.main.gameObject.transform);
             }
         }
     }
@@ -114,9 +150,11 @@ public class PlayerMovement : MonoBehaviour
     private void OnCollisionEnter2D(Collision2D col)
     {
         Pathfinder pathfinder = col.gameObject.GetComponent<Pathfinder>();
-        if (pathfinder != null && visible)
+        if (pathfinder != null && visible && !caught)
         {
-            SceneManager.LoadScene("PlayScene");
+            caught = true;
+            _animator.SetBool("walking", false);
+            Instantiate(deathScreen, Camera.main.gameObject.transform.position + new Vector3(0,0, 5), Quaternion.identity, Camera.main.gameObject.transform);
         }
     }
 }

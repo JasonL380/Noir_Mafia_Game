@@ -33,6 +33,12 @@ namespace DefaultNamespace
 
         public void Update()
         {
+            //self destruct if the player is caught
+            if (player.caught)
+            {
+                Destroy(gameObject);
+            }
+            
             if (_source[currentSource].volume < 0.99)
             {
                 _source[currentSource].volume += (1 / fadeTime) * Time.deltaTime;

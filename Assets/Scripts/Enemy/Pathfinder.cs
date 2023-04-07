@@ -9,6 +9,7 @@
 using System;
 using System.Collections.Generic;
 using DefaultNamespace;
+using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
 using Utils;
@@ -110,6 +111,16 @@ public class Pathfinder : MonoBehaviour
         //UnityEditor.Editor.CreateEditor()_editor.controller = new EditablePathController();
         if (Application.isPlaying)
         {
+            
+            
+            //PathUtility
+            myAnim = GetComponent<Animator>();
+
+            player = target.GetComponent<PlayerMovement>();
+            //print("initializing pathfinder");
+            myRB2D = GetComponent<Rigidbody2D>();
+            //target = waypoints[0];
+            generateGraph();
             if (randomWandering)
             {
                 Vector2Int nextPoint = Vector2Int.zero;
@@ -131,15 +142,6 @@ public class Pathfinder : MonoBehaviour
 
                 transform.position = gridToActual(nextPoint);
             }
-            
-            //PathUtility
-            myAnim = GetComponent<Animator>();
-
-            player = target.GetComponent<PlayerMovement>();
-            //print("initializing pathfinder");
-            myRB2D = GetComponent<Rigidbody2D>();
-            //target = waypoints[0];
-            generateGraph();
             //print(graph[graphDimensions.x/2,graphDimensions.y/2]);
             pathfindingWaypoints = getNextPath();
 
@@ -167,6 +169,12 @@ public class Pathfinder : MonoBehaviour
     {
         if (Application.isPlaying)
         {
+            //self destruct if the player is caught
+            if (player.caught)
+            {
+                Destroy(gameObject);
+            }
+            
             if(State != PathfinderState.Paused)
             {
                 light.transform.rotation = Quaternion.RotateTowards(light.transform.rotation, targetAngle,
@@ -218,11 +226,11 @@ public class Pathfinder : MonoBehaviour
 
                         if (ray.collider == null)
                         {
-                            player.visible = true;
+                            player.visibleBy.Add(this);
                         }
                         else
                         {
-                            player.visible = false;
+                            player.visibleBy.Remove(this);
                             myAnim.SetBool("walking",true);
                             State = lastState;
                         }
@@ -231,7 +239,7 @@ public class Pathfinder : MonoBehaviour
                     {
                         print("Start chasing");
                         State = PathfinderState.Chasing;
-                        player.chased = true;
+                        player.chasing.Add(this);
                         myAnim.SetBool("walking", true);
                         targetAngle = Quaternion.Euler(0, 0, (Mathf.Atan2(toTarget.y, toTarget.x) * Mathf.Rad2Deg) - 90);
                         //State = lastState;
@@ -239,7 +247,7 @@ public class Pathfinder : MonoBehaviour
                 }
                 else
                 {
-                    player.visible = false;
+                    player.visibleBy.Remove(this);
                     State = lastState;
                 }
             }
@@ -269,7 +277,7 @@ public class Pathfinder : MonoBehaviour
                         myAnim.SetBool("walking", false);
                         pausedPosition = target.transform.position;
                         myRB2D.velocity = Vector2.zero;
-                        player.visible = true;
+                        player.visibleBy.Add(this);
                         //if(displayDebug) Debug.DrawLine(transform.position, target.transform.position, Color.cyan, pauseTime);
                     }
                     else
@@ -282,7 +290,7 @@ public class Pathfinder : MonoBehaviour
                 }
                 else
                 {
-                    player.visible = false;
+                    player.visibleBy.Remove(this);
                     if (State == PathfinderState.Chasing)
                     {
                         State = PathfinderState.Searching;
@@ -292,7 +300,7 @@ public class Pathfinder : MonoBehaviour
                     }
                     else if (State != PathfinderState.Searching)
                     {
-                        player.chased = false;
+                        player.chasing.Remove(this);
                         State = PathfinderState.Pacing;
                         pathfindingWaypoints = getNextPath();
                         if(displayDebug) Debug.DrawLine(transform.position, target.transform.position, Color.yellow);
@@ -321,10 +329,10 @@ public class Pathfinder : MonoBehaviour
             }*/
             else
             {
-                player.visible = false;
+                player.visibleBy.Remove(this);
                 if (State == PathfinderState.Chasing)
                 {
-                    player.chased = false;
+                    player.chasing.Remove(this);
                     State = PathfinderState.Pacing;
                     pathfindingWaypoints = getNextPath();
                 }
@@ -499,6 +507,7 @@ public class Pathfinder : MonoBehaviour
         if (!cameFrom.ContainsKey(goal))
         {
             print("No path found");
+            path = getNextPath();
             return path;
         }
 
